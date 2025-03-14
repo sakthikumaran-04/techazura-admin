@@ -54,6 +54,8 @@ function SingleParticipant() {
                 <p><strong>Phone:</strong> {data.phone}</p>
                 <p><strong>College:</strong> {data.college}</p>
                 <p><strong>Transaction ID:</strong> {data.transactionId}</p>
+                <p><strong>Technical Event:</strong> {data.technicalEvent}</p>
+                <p><strong>Non Technical Event:</strong> {data.nonTechnicalEvent}</p>
                 <img src={data.screenshot} alt="screenshot" />
             </div>
             <button className="bg-blue-500 text-white py-2 px-6 rounded-md mt-3 cursor-pointer" onClick={approveTicket} disabled={loading || isApproved}>{loading ? "Loading..." : isApproved ? "Approved!" : "Approve Ticket"}</button>

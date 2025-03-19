@@ -1,89 +1,97 @@
 import { useEffect, useState } from "react";
 import ParticipantCard from "./ParticipantCard";
+import toast from "react-hot-toast";
+import { Link } from "react-router-dom";
 
 function Home() {
     const [loading, setLoading] = useState(false);
     const [isVerified, setIsVerified] = useState(false);
-    const [verifiedUser, setVerifiedUser] = useState([]); // Ensure initial state is an array
+    const [verifiedUser, setVerifiedUser] = useState([]); 
     const [unVerifiedUser, setUnVerifiedUser] = useState([]);
-    async function fetchUnVerifiedParticipants() {
+
+    async function fetchParticipants(status) {
         try {
             setLoading(true);
-            const response = await fetch("https://techazura-backend.vercel.app/api/unverified");
+            const response = await fetch(`${import.meta.env.VITE_API_ENDPOINT}/api/admin/${status}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${sessionStorage.getItem("token")}`,
+                }
+            });
+
             const data = await response.json();
+            console.log(`API Response (${status}):`, data);
 
-            console.log("API Response:", data); 
-
-            if (Array.isArray(data)) {
-                setUnVerifiedUser(data.participants); 
-            } else if (data && Array.isArray(data.participants)) {
-                setUnVerifiedUser(data.participants); 
-            } else {
-                setUnVerifiedUser([]); 
+            if (!data.success) {
+                if (!sessionStorage.getItem("toastShown")) {
+                    toast.error("Please login again");
+                    sessionStorage.setItem("toastShown", "true");
+                }
+                return;
             }
+
+            sessionStorage.removeItem("toastShown");
+
+            if (data && Array.isArray(data.participants)) {
+                status === "unverified" ? setUnVerifiedUser(data.participants) : setVerifiedUser(data.participants);
+            } else {
+                status === "unverified" ? setUnVerifiedUser([]) : setVerifiedUser([]);
+            }
+        } catch (error) {
+            console.error(`Error fetching ${status} participants:`, error);
+            status === "unverified" ? setUnVerifiedUser([]) : setVerifiedUser([]);
+        } finally {
             setLoading(false);
-        } catch (error) {
-            console.error("Error fetching data:", error);
-            setUnVerifiedUser([]); 
-        }
-    }
-
-    async function fetchVerifiedParticipants() {
-        try {
-            const response = await fetch("https://techazura-backend.vercel.app/api/verified");
-            const data = await response.json();
-
-            console.log("API Response:", data); 
-
-            if (Array.isArray(data)) {
-                setVerifiedUser(data.participants); 
-            } else if (data && Array.isArray(data.participants)) {
-                setVerifiedUser(data.participants); 
-            } else {
-                setVerifiedUser([]); 
-            }
-        } catch (error) {
-            console.error("Error fetching data:", error);
-            setVerifiedUser([]); 
         }
     }
 
     useEffect(() => {
-        fetchUnVerifiedParticipants();
-        fetchVerifiedParticipants();
+        fetchParticipants("unverified");
+        fetchParticipants("verified");
     }, [isVerified]);
 
     return (
         <main className="flex flex-col justify-center items-center gap-4 pt-12">
-            {loading? <p>Loading...</p> : 
-            <>
-                <h1 className="text-2xl pb-3">TechAzura Admin panel</h1>
-            <div className="grid grid-cols-2 max-w-[900px] w-full px-2">
-                <button 
-                    className={`flex flex-col items-center justify-center rounded-md transition-colors duration-250 ease-in-out ${!isVerified ? " bg-blue-500 py-2 text-white" : ""}`} 
-                    onClick={() => setIsVerified(false)}
-                >
-                    <span>UnVerified participants</span>
-                </button>
-                <button 
-                    className={`flex flex-col items-center justify-center rounded-md transition-colors duration-250 ease-in-out ${isVerified ? " bg-blue-500 py-2 text-white" : ""}`} 
-                    onClick={() => setIsVerified(true)}
-                >
-                    <span>Verified participants</span>
-                </button>
-            </div>
-            <div className="max-w-[900px] w-1/2">
-                {isVerified ? 
-                    Array.isArray(verifiedUser) && verifiedUser.length > 0
-                        ? verifiedUser.map((item, index) => <ParticipantCard key={index} name={item.name} id={item._id} />)
-                        : "No participants"
-                :
-                    Array.isArray(unVerifiedUser) && unVerifiedUser.length > 0
-                        ? unVerifiedUser.map((item, index) => <ParticipantCard key={index} name={item.name} id={item._id} />)
-                        : "No participants"
-                }
-            </div>
-            </>}
+            {loading ? (
+                <p>Loading...</p>
+            ) : (
+                <>
+                    <h1 className="text-2xl pb-3">TechAzura Admin Panel</h1>
+                    <Link to={"/login"} className="bg-blue-500 text-white py-2 px-5 rounded-md">Login</Link>
+                    <div className="grid grid-cols-2 max-w-[900px] w-full px-2">
+                        <button
+                            className={`flex flex-col items-center justify-center rounded-md transition-colors duration-250 ease-in-out ${
+                                !isVerified ? " bg-blue-500 py-2 text-white" : ""
+                            }`}
+                            onClick={() => setIsVerified(false)}
+                        >
+                            <span>Unverified Participants</span>
+                        </button>
+                        <button
+                            className={`flex flex-col items-center justify-center rounded-md transition-colors duration-250 ease-in-out ${
+                                isVerified ? " bg-blue-500 py-2 text-white" : ""
+                            }`}
+                            onClick={() => setIsVerified(true)}
+                        >
+                            <span>Verified Participants</span>
+                        </button>
+                    </div>
+                    <div className="max-w-[900px] w-1/2 max-sm:w-[90%]">
+                        {isVerified
+                            ? verifiedUser.length > 0
+                                ? verifiedUser.map((item) => (
+                                      <ParticipantCard key={item._id} name={item.name} id={item._id} />
+                                  ))
+                                : "No participants"
+                            : unVerifiedUser.length > 0
+                            ? unVerifiedUser.map((item) => (
+                                  <ParticipantCard key={item._id} name={item.name} id={item._id} />
+                              ))
+                            : "No participants"}
+                    </div>
+                </>
+            )}
         </main>
     );
 }

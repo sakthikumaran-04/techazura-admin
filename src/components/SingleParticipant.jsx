@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { useParams } from "react-router-dom";
 
 function SingleParticipant() {
@@ -10,9 +11,16 @@ function SingleParticipant() {
 
     async function fetchParticipant() {
         try {
-            const response = await fetch(`https://techazura-backend.vercel.app/api/participant/${id}`);
+            const response = await fetch(`${import.meta.env.VITE_API_ENDPOINT}/api/admin/participant/${id}`,{
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${sessionStorage.getItem("token")}`,
+                }
+            }
+            );
+            if(!response.ok) toast.error("please login again")
             if (!response.ok) throw new Error("Failed to fetch participant");
-
             const tempData = await response.json();
             setData(tempData);
             setIsApproved(tempData.accepted);
@@ -24,8 +32,12 @@ function SingleParticipant() {
     async function approveTicket(){
         try {
             setLoading(true);
-            const response = await fetch(`https://techazura-backend.vercel.app/api/participant/${id}`,{
-                method:"PUT"
+            const response = await fetch(`${import.meta.env.VITE_API_ENDPOINT}/api/admin/approve-ticket/${id}`,{
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${sessionStorage.getItem("token")}`,
+                }
             });
             if (!response.ok) throw new Error("Failed to fetch participant");
 
@@ -34,6 +46,7 @@ function SingleParticipant() {
             setLoading(false);
             setIsApproved(true);
         } catch (err) {
+            toast.error(err.message);
             setError(err.message);
         }
     }

@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { useParams } from "react-router-dom";
+import { useParams,useNavigate } from "react-router-dom";
 
 function SingleParticipant() {
     const [data, setData] = useState(null);
+    const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [isApproved, setIsApproved] = useState(false);
     const [error, setError] = useState(null);
@@ -42,9 +43,31 @@ function SingleParticipant() {
             if (!response.ok) throw new Error("Failed to fetch participant");
 
             const tempData = await response.json();
+            toast.success("Approved participant!");
             setData(tempData.participant);
             setLoading(false);
             setIsApproved(true);
+        } catch (err) {
+            toast.error(err.message);
+            setError(err.message);
+        }
+    }
+
+    async function rejectTicket(){
+        try {
+            setLoading(true);
+            const response = await fetch(`${import.meta.env.VITE_API_ENDPOINT}/api/admin/reject-ticket/${id}`,{
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${sessionStorage.getItem("token")}`,
+                }
+            });
+            if (!response.ok) throw new Error("Failed to fetch participant");
+            toast.success("Rejected participant!");
+            setLoading(false);
+            setIsApproved(false);
+            navigate("/");
         } catch (err) {
             toast.error(err.message);
             setError(err.message);
@@ -70,8 +93,11 @@ function SingleParticipant() {
                 <p><strong>Technical Event:</strong> {data.technicalEvent}</p>
                 <p><strong>Non Technical Event:</strong> {data.nonTechnicalEvent}</p>
                 <img src={data.screenshot} alt="screenshot" />
+                <div className="w-full flex items-center justify-center gap-2">
+                    {!loading && !isApproved && <button className="bg-red-500 text-white py-2 px-6 rounded-md w-full mt-3 cursor-pointer" onClick={rejectTicket} disabled={loading || isApproved}>Reject</button>}
+                    <button className="bg-green-500 text-white py-2 px-6 rounded-md mt-3 cursor-pointer w-full" onClick={approveTicket} disabled={loading || isApproved}>{loading ? "Loading..." : isApproved ? "Approved!" : "Accept"}</button>
+                </div>
             </div>
-            <button className="bg-blue-500 text-white py-2 px-6 rounded-md mt-3 cursor-pointer" onClick={approveTicket} disabled={loading || isApproved}>{loading ? "Loading..." : isApproved ? "Approved!" : "Approve Ticket"}</button>
         </section>
     );
 }
